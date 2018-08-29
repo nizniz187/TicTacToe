@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+        body { background-color: #14bdac; text-align: center; }
+        button {padding: 10px; width: 125px; font-size: 16px; font-weight: bold;}
+
+        #board { width: 300px; height: 300px; margin: 50px auto; position: relative; }
+        #board > .cell { 
+            width: 100px; height: 100px; float: left; box-sizing: border-box;
+            text-align: center; line-height: 100px; font-size: 50px; cursor: pointer;
+            border-style: solid; border-color: #0da192; border-width: 0 5px 5px 0;
+        }
+        #board > .cell:nth-child(3), #board > .cell:nth-child(6), #board > .cell:nth-child(9) {
+            border-right: none;
+        }
+        #board > .cell:nth-child(7), #board > .cell:nth-child(8), #board > .cell:nth-child(9) {
+            border-bottom: none;
+        }
+        #board > .cell.x { color: #545454; cursor: default; }
+        #board > .cell.o { color: #f2ebd3; cursor: default; }
+        #board > .line {
+			position: absolute; top: 0px; left: 0px; width: 300px; height: 300px;
+        }
+    </style>
+    <title>Tic Tac Toe</title>
+	<script src="https://unpkg.com/react@15/dist/react.min.js"></script>
+	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
+	<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+	<script type="text/babel">
+        class Board extends React.Component{
+            constructor(props){
+                super(props);
+                /*
+                    index
+                    0   1   2
+                    3   4   5
+                    6   7   8
+                */ 
+                this.state = {
+                    round: 0,   //round count
+                    marks: [Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
+                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
+                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE],
+                    winner: null
+                }
+            }
+
+            render(){
+                let cells = new Array(0);
+                for(let i = 0; i < this.state.marks.length; i++){
+                    cells.push(
+                        <Cell 
+                            index={i} mark={this.state.marks[i]} 
+                            update={this.updateMark.bind(this)} />
+                    );
+                }
+                if(this.state.winner !== null){
+                    cells.push(
+                        <Line 
+                            startIndex={this.state.winner.startIndex}
+                            endIndex={this.state.winner.endIndex} />
+                    );
+                }
+                return (<div id="board">{cells}</div>);
+            }
+            updateMark(index){
+                if(this.state.marks[index] === Board.MARK_NONE && this.state.winner === null){
+                    this.setState((preState)=>{
+                        preState.marks[index] = preState.round % 2;
+                        return {
+                            round: preState.round + 1,
+                            marks: preState.marks,
+                            winner: this.checkWinner(preState.marks)
+                        };
+                    });
+                }
+            }
+            checkWinner(marks){
+                for(let i = 0; i < 3; i++){
+                    if(this.checkLine(marks[i], marks[i + 3], marks[i + 6])){
+                        return { side: marks[i], startIndex: i, endIndex: i + 6 };
+                    }
+                    let y = i * 3;
+                    if(this.checkLine(marks[y], marks[y + 1], marks[y + 2])){
+                        return { side: marks[y], startIndex: y, endIndex: y + 2 };
+                    }
+                }
+                if(this.checkLine(marks[0], marks[4], marks[8])){
+                    return { side: marks[0], startIndex: 0, endIndex: 8 };
+                }
+                if(this.checkLine(marks[2], marks[4], marks[6])){
+                    return { side: marks[2], startIndex: 2, endIndex: 6 };
+                }
+                return null;
+            }
+            checkLine(mark1, mark2, mark3){
+                if(mark1 === Board.MARK_NONE) { return false; }
+                if(mark1 === mark2 && mark2 === mark3){ return true; }
+            }
+            
+            static get MARK_NONE(){ return -1; }
+            static get MARK_O(){ return 0; }
+            static get MARK_X(){ return 1; }
+        }
+        class Cell extends React.Component{
+            render(){
+                return (
+                    <div 
+                        className={this.getCellClass(this.props.mark)}
+                        onClick={this.clickHandler.bind(this)}>
+                        {this.getMarkText(this.props.mark)}
+                    </div>
+                );
+            }
+
+            clickHandler(e){
+                this.props.update(this.props.index);
+            }
+            
+            getMarkText(mark){
+                switch(mark){
+                    case Board.MARK_O:
+                        return "◯";
+                    case Board.MARK_X:
+                        return "✕";
+                }
+                return "";
+            }
+            getCellClass(mark){
+                switch(mark) {
+                    case Board.MARK_O:
+                        return "cell o";
+                    case Board.MARK_X:
+                        return "cell x";
+                }
+                return "cell";
+            }
+        }
+        class Line extends React.Component{
+            render(){
+				let startX = this.props.startIndex % 3;
+				let startY = Math.floor(this.props.startIndex / 3);
+				let endX = this.props.endIndex % 3;
+				let endY = Math.floor(this.props.endIndex / 3);
+				return (
+                    <svg className="line">
+                        <line 
+                            x1={startX * 100 + 50} y1={startY * 100 + 50} 
+                            x2={endX * 100 + 50} y2={endY * 100 + 50} 
+                            stroke="red" strokeWidth="5" />
+                    </svg>
+                );
+            }
+        }
+
+        window.addEventListener("load", ()=>{
+            ReactDOM.render(<Board />, document.body);
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>
