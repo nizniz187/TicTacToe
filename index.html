@@ -27,7 +27,8 @@
     <title>Tic Tac Toe</title>
 	<script src="https://unpkg.com/react@15/dist/react.min.js"></script>
 	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
-	<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/redux@4.0.1/dist/redux.min.js"></script>
 	<script type="text/babel">
         class Board extends React.Component{
             constructor(props){
@@ -38,13 +39,7 @@
                     3   4   5
                     6   7   8
                 */ 
-                this.state = {
-                    round: 0,   //round count
-                    marks: [Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
-                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
-                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE],
-                    winner: null
-                }
+                this.state = redux.store.getState();
             }
 
             render(){
@@ -65,39 +60,19 @@
                 }
                 return (<div id="board">{cells}</div>);
             }
+
             updateMark(index){
-                if(this.state.marks[index] === Board.MARK_NONE && this.state.winner === null){
-                    this.setState((preState)=>{
-                        preState.marks[index] = preState.round % 2;
-                        return {
-                            round: preState.round + 1,
-                            marks: preState.marks,
-                            winner: this.checkWinner(preState.marks)
-                        };
-                    });
-                }
+                redux.store.dispatch({ type: "UPDATE_MARK", index: index });
             }
-            checkWinner(marks){
-                for(let i = 0; i < 3; i++){
-                    if(this.checkLine(marks[i], marks[i + 3], marks[i + 6])){
-                        return { side: marks[i], startIndex: i, endIndex: i + 6 };
-                    }
-                    let y = i * 3;
-                    if(this.checkLine(marks[y], marks[y + 1], marks[y + 2])){
-                        return { side: marks[y], startIndex: y, endIndex: y + 2 };
-                    }
-                }
-                if(this.checkLine(marks[0], marks[4], marks[8])){
-                    return { side: marks[0], startIndex: 0, endIndex: 8 };
-                }
-                if(this.checkLine(marks[2], marks[4], marks[6])){
-                    return { side: marks[2], startIndex: 2, endIndex: 6 };
-                }
-                return null;
+            updateState(){
+                this.setState(redux.store.getState());
             }
-            checkLine(mark1, mark2, mark3){
-                if(mark1 === Board.MARK_NONE) { return false; }
-                if(mark1 === mark2 && mark2 === mark3){ return true; }
+
+            componentDidMount(){
+                this.unsubscribe = redux.store.subscribe(this.updateState.bind(this));
+            }
+            componentWillUnmount(){
+                this.unsubscribe();
             }
             
             static get MARK_NONE(){ return -1; }
@@ -154,8 +129,57 @@
                 );
             }
         }
-
+        
+        let redux = {
+            store: null,
+            reducer: function(state, action){
+                switch(action.type){
+                    case "UPDATE_MARK":
+                        if(state.marks[action.index] === Board.MARK_NONE && state.winner === null){
+                            state.marks[action.index] = state.round % 2;
+                            return {
+                                round: state.round + 1,
+                                marks: state.marks,
+                                winner: redux.checkWinner(state.marks)
+                            };
+                        }else{
+                            return state;
+                        }
+                    default:
+                        return state;
+                }
+            },
+            checkWinner: function(marks){
+                for(let i = 0; i < 3; i++){
+                    if(redux.checkLine(marks[i], marks[i + 3], marks[i + 6])){
+                        return { side: marks[i], startIndex: i, endIndex: i + 6 };
+                    }
+                    let y = i * 3;
+                    if(redux.checkLine(marks[y], marks[y + 1], marks[y + 2])){
+                        return { side: marks[y], startIndex: y, endIndex: y + 2 };
+                    }
+                }
+                if(redux.checkLine(marks[0], marks[4], marks[8])){
+                    return { side: marks[0], startIndex: 0, endIndex: 8 };
+                }
+                if(redux.checkLine(marks[2], marks[4], marks[6])){
+                    return { side: marks[2], startIndex: 2, endIndex: 6 };
+                }
+                return null;
+            },
+            checkLine: function(mark1, mark2, mark3){
+                if(mark1 === Board.MARK_NONE) { return false; }
+                if(mark1 === mark2 && mark2 === mark3){ return true; }
+            }
+        };
         window.addEventListener("load", ()=>{
+            redux.store = Redux.createStore(redux.reducer, {
+                    round: 0,   //round count
+                    marks: [Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
+                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE, 
+                            Board.MARK_NONE, Board.MARK_NONE, Board.MARK_NONE],
+                    winner: null
+            });
             ReactDOM.render(<Board />, document.body);
         });
     </script>
